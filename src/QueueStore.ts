@@ -1,4 +1,4 @@
-import * as SQLite from "expo-sqlite"
+import * as SQLite from "expo-sqlite/legacy"
 import type { RawJob } from "./types"
 
 const mapColumnsToJob = (row: Record<string, any>): RawJob => {
