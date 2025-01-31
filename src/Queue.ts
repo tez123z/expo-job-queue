@@ -188,15 +188,28 @@ export class Queue {
       priority?: number
       runIn?: Duration
       retryIn?: Duration
+      retryExponential?: boolean
     } = {},
     startQueue = true,
   ) {
-    const { attempts = 0, timeout = 0, priority = 0, runIn, retryIn } = options
+    const {
+      attempts = 0,
+      timeout = 0,
+      priority = 0,
+      runIn,
+      retryIn,
+      retryExponential = false,
+    } = options
     const id: string = Uuid.v4()
     const job: RawJob = {
       id,
       payload: JSON.stringify(payload || {}),
-      metaData: JSON.stringify({ failedAttempts: 0, errors: [], retryIn: retryIn }),
+      metaData: JSON.stringify({
+        failedAttempts: 0,
+        errors: [],
+        retryIn: retryIn,
+        retryExponential,
+      }),
       active: FALSE,
       created: new Date().toISOString(),
       scheduled_for: runIn ? add(new Date(), runIn).toISOString() : "now",
@@ -403,13 +416,27 @@ export class Queue {
     } catch (error) {
       worker.triggerFailure(job, error as Error)
       const { attempts } = rawJob
-      let { errors, failedAttempts, retryIn } = JSON.parse(rawJob.metaData)
+      let { errors, failedAttempts, retryIn, retryExponential } = JSON.parse(rawJob.metaData)
       failedAttempts++
       let failed = ""
       if (failedAttempts >= attempts) {
         failed = new Date().toISOString()
       }
-      const metaData = JSON.stringify({ errors: [...errors, error], failedAttempts, retryIn })
+      const metaData = JSON.stringify({
+        errors: [...errors, error],
+        failedAttempts,
+        retryIn,
+        retryExponential,
+      })
+
+      if (retryExponential && retryIn.seconds) {
+        const baseDelay = parseInt(retryIn.seconds)
+        const exponentialDelay = baseDelay * Math.pow(2, failedAttempts - 1)
+        retryIn = {
+          seconds: exponentialDelay,
+        }
+      }
+
       this.jobStore.updateJob({
         ...rawJob,
         ...{
