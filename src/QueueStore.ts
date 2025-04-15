@@ -1,5 +1,36 @@
-import * as SQLite from "expo-sqlite/legacy"
+// Use require instead of import to avoid TypeScript module resolution issues
 import type { RawJob } from "./types"
+
+// Load SQLite dynamically to avoid type conflicts
+const SQLite = require("expo-sqlite")
+
+// Interface for database operations
+interface Database {
+  execAsync: (sql: string) => Promise<void>
+  getAllAsync: (sql: string, params: any[]) => Promise<any[]>
+  runAsync: (sql: string, ...params: any[]) => Promise<{ changes: number, lastInsertRowId: number }>
+  closeAsync: () => Promise<void>
+}
+
+// Open database function 
+async function openDatabase(name: string): Promise<Database> {
+  try {
+    // Try the new API first (Expo SDK 52+)
+    if (typeof SQLite.openDatabaseAsync === 'function') {
+      return await SQLite.openDatabaseAsync(name)
+    }
+    // Fall back to legacy API
+    else if (typeof SQLite.openDatabase === 'function') {
+      return SQLite.openDatabase(name)
+    }
+    else {
+      throw new Error("Unable to find a compatible SQLite API")
+    }
+  } catch (error) {
+    console.error("Error opening database:", error)
+    throw error
+  }
+}
 
 const mapColumnsToJob = (row: Record<string, any>): RawJob => {
   return {
@@ -19,27 +50,27 @@ const mapColumnsToJob = (row: Record<string, any>): RawJob => {
 
 export class QueueStore {
   private static _instance: QueueStore
-  private _db: SQLite.WebSQLDatabase
+  private _db: Database | null = null
 
   constructor() {
-    this._db = SQLite.openDatabase("queue.db")
-    this._db.transaction((tx) => {
-      tx.executeSql(
-        `CREATE TABLE IF NOT EXISTS Job(
-        id CHAR(36) PRIMARY KEY NOT NULL,
-        worker_name CHAR(255) NOT NULL,
-        active INTEGER NOT NULL,
-        payload CHAR(1024),
-        meta_data CHAR(1024),
-        attempts INTEGER NOT NULL,
-        created CHAR(255),
-        scheduled_for CHAR(255) NOT NULL DEFAULT "now",
-        failed CHAR(255),
-        timeout INTEGER NOT NULL,
-        priority Integer NOT NULL
-        );`,
-      )
-    })
+    this.initDatabase()
+  }
+
+  private async initDatabase() {
+    this._db = await openDatabase("queue.db")
+    await this._db.execAsync(`CREATE TABLE IF NOT EXISTS Job(
+      id CHAR(36) PRIMARY KEY NOT NULL,
+      worker_name CHAR(255) NOT NULL,
+      active INTEGER NOT NULL,
+      payload CHAR(1024),
+      meta_data CHAR(1024),
+      attempts INTEGER NOT NULL,
+      created CHAR(255),
+      scheduled_for CHAR(255) NOT NULL DEFAULT "now",
+      failed CHAR(255),
+      timeout INTEGER NOT NULL,
+      priority Integer NOT NULL
+      );`)
   }
 
   static get instance() {
@@ -51,23 +82,13 @@ export class QueueStore {
     }
   }
 
-  private query<T = any>(query: string, args: any[] = []): Promise<T> {
-    return new Promise((resolve, reject) => {
-      this._db.transaction((tx) => {
-        tx.executeSql(
-          query,
-          args,
-          // @ts-ignore
-          (_, { rows: { _array } }) =>
-            // @ts-ignore
-            resolve((_array ?? []).map((row: any) => (row?.id ? mapColumnsToJob(row) : row))),
-          (_, error) => {
-            reject(error)
-            return true
-          },
-        )
-      })
-    })
+  private async query<T = any>(query: string, args: any[] = []): Promise<T> {
+    if (!this._db) {
+      await this.initDatabase()
+    }
+
+    const rows = await this._db!.getAllAsync(query, args)
+    return rows.map((row: any) => (row?.id ? mapColumnsToJob(row) : row)) as unknown as T
   }
 
   private getJobsByQuery(query: string, args: any[] = []): Promise<RawJob[]> {

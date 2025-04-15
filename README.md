@@ -8,6 +8,14 @@ An SQLite based job queue for Expo
 yarn add expo-job-queue
 ```
 
+## Compatibility
+
+This package is compatible with:
+- Expo SDK up to 52
+- expo-sqlite 15.x and later
+
+The library automatically detects and uses the appropriate SQLite API based on your installed version.
+
 ## Usage
 
 ```js
