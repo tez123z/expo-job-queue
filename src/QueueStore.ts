@@ -8,22 +8,21 @@ const SQLite = require("expo-sqlite")
 interface Database {
   execAsync: (sql: string) => Promise<void>
   getAllAsync: (sql: string, params: any[]) => Promise<any[]>
-  runAsync: (sql: string, ...params: any[]) => Promise<{ changes: number, lastInsertRowId: number }>
+  runAsync: (sql: string, ...params: any[]) => Promise<{ changes: number; lastInsertRowId: number }>
   closeAsync: () => Promise<void>
 }
 
-// Open database function 
+// Open database function
 async function openDatabase(name: string): Promise<Database> {
   try {
     // Try the new API first (Expo SDK 52+)
-    if (typeof SQLite.openDatabaseAsync === 'function') {
+    if (typeof SQLite.openDatabaseAsync === "function") {
       return await SQLite.openDatabaseAsync(name)
     }
     // Fall back to legacy API
-    else if (typeof SQLite.openDatabase === 'function') {
+    else if (typeof SQLite.openDatabase === "function") {
       return SQLite.openDatabase(name)
-    }
-    else {
+    } else {
       throw new Error("Unable to find a compatible SQLite API")
     }
   } catch (error) {
