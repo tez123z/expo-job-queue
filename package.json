@@ -150,7 +150,6 @@
   },
   "dependencies": {
     "date-fns": "^2.21.3",
-    "expo-job-queue": "/Users/rudineisilva/projects/expo-job-queue/expo-job-queue-1.4.4.tgz",
     "expo-sqlite": "^15.1.4"
   }
 }

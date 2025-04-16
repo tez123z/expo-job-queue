@@ -4181,13 +4181,6 @@ expect@^26.6.2:
     jest-message-util "^26.6.2"
     jest-regex-util "^26.0.0"
 
-expo-job-queue@/Users/rudineisilva/projects/expo-job-queue/expo-job-queue-1.4.4.tgz:
-  version "1.4.4"
-  resolved "/Users/rudineisilva/projects/expo-job-queue/expo-job-queue-1.4.4.tgz#42d0b9723d1f38a0d74d1a0302169a139423cc19"
-  dependencies:
-    date-fns "^2.21.3"
-    expo-sqlite "^15.1.4"
-
 expo-sqlite@^15.1.4:
   version "15.1.4"
   resolved "https://registry.yarnpkg.com/expo-sqlite/-/expo-sqlite-15.1.4.tgz#7827db7e6d376747d9d2a3a4eea9760e5bd41c42"
