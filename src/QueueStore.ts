@@ -83,11 +83,26 @@ export class QueueStore {
 
   private async query<T = any>(query: string, args: any[] = []): Promise<T> {
     if (!this._db) {
-      await this.initDatabase()
+      try {
+        await this.initDatabase()
+        if (!this._db) {
+          throw new Error("Failed to initialize database")
+        }
+      } catch (error) {
+        console.error("Database initialization error:", error)
+        throw new Error(`Database error: ${error instanceof Error ? error.message : String(error)}`)
+      }
     }
 
-    const rows = await this._db!.getAllAsync(query, args)
-    return rows.map((row: any) => (row?.id ? mapColumnsToJob(row) : row)) as unknown as T
+    try {
+      const rows = await this._db.getAllAsync(query, args)
+      return rows.map((row: any) => (row?.id ? mapColumnsToJob(row) : row)) as unknown as T
+    } catch (error) {
+      console.error(`Query error for: ${query}`, error)
+      throw new Error(
+        `SQLite query error: ${error instanceof Error ? error.message : String(error)}`,
+      )
+    }
   }
 
   private getJobsByQuery(query: string, args: any[] = []): Promise<RawJob[]> {
@@ -141,22 +156,34 @@ export class QueueStore {
   }
 
   async addJob(job: RawJob) {
-    await this.query(
-      "INSERT INTO job (id, worker_name, active, payload, meta_data, attempts, created, failed, timeout, priority, scheduled_for) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
-      [
-        job.id,
-        job.workerName,
-        job.active,
-        job.payload,
-        job.metaData,
-        job.attempts,
-        job.created,
-        job.failed,
-        job.timeout,
-        job.priority,
-        job.scheduled_for,
-      ],
-    )
+    try {
+      // Validate job
+      if (!job.id || !job.workerName) {
+        throw new TypeError("Invalid job: missing required fields")
+      }
+
+      await this.query(
+        "INSERT INTO job (id, worker_name, active, payload, meta_data, attempts, created, failed, timeout, priority, scheduled_for) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
+        [
+          job.id,
+          job.workerName,
+          job.active,
+          job.payload,
+          job.metaData,
+          job.attempts,
+          job.created,
+          job.failed,
+          job.timeout,
+          job.priority,
+          job.scheduled_for,
+        ],
+      )
+    } catch (error) {
+      console.error("Failed to add job:", error)
+      throw new Error(
+        `Failed to add job: ${error instanceof Error ? error.message : String(error)}`,
+      )
+    }
   }
 }
 
