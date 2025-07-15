@@ -150,8 +150,8 @@ export class QueueStore {
 
   async updateJob(job: RawJob) {
     await this.query(
-      "UPDATE job SET active = ?, failed = ?, meta_data = ?, attempts = ?, scheduled_for = ? WHERE id = ?;",
-      [job.active, job.failed, job.metaData, job.attempts, job.scheduled_for, job.id],
+      "UPDATE job SET active = ?, failed = ?, meta_data = ?, attempts = ?, scheduled_for = ?, payload = ? WHERE id = ?;",
+      [job.active, job.failed, job.metaData, job.attempts, job.scheduled_for, job.payload, job.id],
     )
   }
 
