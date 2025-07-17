@@ -115,6 +115,10 @@ export class QueueStore {
     )
   }
 
+  async getAllJobs(): Promise<RawJob[]> {
+    return this.getJobsByQuery(`SELECT * FROM job ORDER BY priority DESC,datetime(created);`)
+  }
+
   async getActiveMarkedJobs(): Promise<RawJob[]> {
     return this.getJobsByQuery(`SELECT * FROM job WHERE active == 1;`)
   }
