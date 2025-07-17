@@ -106,10 +106,17 @@ export class Queue {
   }
 
   /**
-   * @returns a promise that resolves all jobs of jobStore
+   * @returns a promise that resolves all scheduled jobs of jobStore
    */
   async getJobs() {
     return await this.jobStore.getJobs()
+  }
+
+  /**
+   * @returns a promise that resolves all jobs of jobStore
+   */
+  async getAllJobs() {
+    return await this.jobStore.getAllJobs()
   }
 
   /**
